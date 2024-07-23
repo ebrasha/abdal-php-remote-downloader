@@ -29,14 +29,13 @@ function getFileSize($url) {
     return false;
 }
 
-function downloadChunk($url, $start, $chunkSize) {
-    $fileName = basename(parse_url($url, PHP_URL_PATH));
-    $savePath = __DIR__ . '/' . $fileName;
-
-    $fp = fopen($savePath, 'a');
+function downloadChunk($url, $start, $chunkSize, $savePath) {
+    $fp = fopen($savePath, 'c');
     if ($fp === false) {
         return ['error' => 'Could not open: ' . $savePath];
     }
+
+    fseek($fp, $start);
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RANGE, $start . '-' . ($start + $chunkSize - 1));
@@ -54,7 +53,7 @@ function downloadChunk($url, $start, $chunkSize) {
     fclose($fp);
     curl_close($ch);
 
-    return ['downloaded' => $start + strlen($data), 'file' => $fileName];
+    return ['downloaded' => $start + strlen($data), 'file' => $savePath];
 }
 
 ob_start(); // Start output buffering
@@ -64,9 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['fileUrl']) && filter_var($_POST['fileUrl'], FILTER_VALIDATE_URL)) {
         $fileUrl = $_POST['fileUrl'];
         $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
-        $chunkSize = 1024 * 1024; // 1MB chunks
+        $chunkSize = 5* 1024 * 1024; // 5MB chunks
+
+        $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
+        $savePath = __DIR__ . '/' . $fileName;
 
         if ($start == 0) {
+            if (file_exists($savePath)) {
+                unlink($savePath); // Remove existing file to start fresh
+            }
             $totalSize = getFileSize($fileUrl);
             if ($totalSize === false) {
                 $response['error'] = 'Could not get file size';
@@ -76,9 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $response['totalSize'] = $totalSize;
         } else {
             $response['totalSize'] = isset($_POST['totalSize']) ? intval($_POST['totalSize']) : 0;
+            $currentSize = file_exists($savePath) ? filesize($savePath) : 0;
+            if ($currentSize != $start) {
+                $start = $currentSize;
+            }
         }
 
-        $result = downloadChunk($fileUrl, $start, $chunkSize);
+        $result = downloadChunk($fileUrl, $start, $chunkSize, $savePath);
         if (isset($result['error'])) {
             $response['error'] = $result['error'];
         } else {

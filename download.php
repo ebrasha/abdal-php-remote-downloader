@@ -21,7 +21,8 @@ ini_set('memory_limit', '1024M');
 
 header('Content-Type: application/json');
 
-function getFileSize($url) {
+function getFileSize($url)
+{
     $headers = get_headers($url, 1);
     if (isset($headers['Content-Length'])) {
         return $headers['Content-Length'];
@@ -29,7 +30,8 @@ function getFileSize($url) {
     return false;
 }
 
-function downloadChunk($url, $start, $chunkSize, $savePath) {
+function downloadChunk($url, $start, $chunkSize, $savePath)
+{
     $fp = fopen($savePath, 'c');
     if ($fp === false) {
         return ['error' => 'Could not open: ' . $savePath];
@@ -63,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['fileUrl']) && filter_var($_POST['fileUrl'], FILTER_VALIDATE_URL)) {
         $fileUrl = $_POST['fileUrl'];
         $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
-        $chunkSize = 5* 1024 * 1024; // 5MB chunks
+        $chunkSize = 5 * 1024 * 1024; // 5MB chunks
 
         $fileName = basename(parse_url($fileUrl, PHP_URL_PATH));
         $savePath = __DIR__ . '/' . $fileName;

@@ -27,7 +27,6 @@
 
 - Remote file downloading
 - Supports large file downloads
-- Continues download after server timeouts
 - User-friendly interface with Bootstrap
 - Progress bar to show download status
 - Without any malicious code
